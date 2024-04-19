@@ -1,5 +1,5 @@
 # Portfolio
-Hi there. 
+Hi there.\
 My name is Matthias Widler and I am pleased to present my portfolio to showcase my skills as a data engineer.
 
 ### Web Crawling
