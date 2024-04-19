@@ -11,8 +11,8 @@ class HomegateSpider(scrapy.Spider):
     on https://www.homegate.ch, and saves the data in :class:`~immo_crawl.items.ImmoCrawlItem`.
 
     Attributes:
-        name (str): name of the Spider
-        allowed_domains (list): list of allowed Domains
+        name (str): name of the spider
+        allowed_domains (list): list of allowed domains
     """
     name = 'homegate'
     allowed_domains = ['homegate.ch']

@@ -75,12 +75,11 @@ def replace_point(string):
 
 class ImmoCrawlItem(Item):
     """
-    Ein Container, in den die Daten geschrieben werden, die aus den Inseraten gescraped
-    wurden. Die definierten Felder entsprechen den Datenfeldern der Datenbank, in welche
-    die gesammelten Daten geschrieben werden.
+    A container in which the data scraped from the advertisements is written. 
+    The defined fields correspond to the data fields of the database into which 
+    the collected data is written.
 
-    Die Daten der verschiedenen Feldern werden in der Pipeline (siehe :attr:`~immo_crawl.settings.ITEM_PIPELINES`)
-    bearbeitet und in die Datenbank geschrieben.
+    The data from the different fields is processed in :attr:`~immo_crawl.settings.ITEM_PIPELINES`
     """
     address = Field()
     zip_code = Field()
@@ -99,13 +98,8 @@ class ImmoCrawlItem(Item):
 
 class ImmoScoutLoader(ItemLoader):
     """
-    Der :class:`ImmoScoutLoader` befüllt den Container (:class:`ImmoCrawlItem`) mit den
-    aus dem HTML-Code extrahierten Daten. Dabei ermöglicht er eine Vorverarbeitung der
-    Daten, damit diese im gewünschten Format vorhanden sind, um sie in der Pipeline (siehe
-    :attr:`~immo_crawl.settings.ITEM_PIPELINES`) weiter zu verarbeiten.
-
-    Da die Daten auf verschiednen Plattformen in unterschiedlichen Formaten vorliegen,
-    benötigt jede Website einen eigenen :class:`~scrapy:scrapy.loader.ItemLoader`.
+    Preprocesses the scraped data from www.immoscout24.ch and writes it to 
+    :class:`ImmoCrawlItem`.
     """
     default_output_processor = TakeFirst()
 
@@ -123,13 +117,8 @@ class ImmoScoutLoader(ItemLoader):
 
 class HomeGateLoader(ItemLoader):
     """
-    Der :class:`HomeGateLoader` befüllt den Container (:class:`ImmoCrawlItem`) mit den
-    aus dem HTML-Code extrahierten Daten. Dabei ermöglicht er eine Vorverarbeitung der
-    Daten, damit diese im gewünschten Format vorhanden sind, um sie in der Pipeline (siehe
-    :attr:`~immo_crawl.settings.ITEM_PIPELINES`) weiter zu verarbeiten.
-
-    Da die Daten auf verschiednen Plattformen in unterschiedlichen Formaten vorliegen,
-    benötigt jede Website einen eigenen :class:`~scrapy:scrapy.loader.ItemLoader`.
+    Preprocesses the scraped data from www.homegate.ch and writes it to 
+    :class:`ImmoCrawlItem`.
     """
     default_output_processor = TakeFirst()
 
@@ -146,13 +135,12 @@ class HomeGateLoader(ItemLoader):
 
 class PriceCheckItem(Item):
     """
-    Ein Container, in den die :class:`~immo_crawl.spider.PricecheckSpider` die relevanten
-    Daten schreibt. Die definierten Felder entsprechen den Datenfeldern der Preis-Tabelle in der
-    Datenbank.
+    A container for the data scraped by :class:`~immo_crawl.spider.PricecheckSpider`. 
+    The defined fields correspond to the data fields of the database into which 
+    the collected data is written.
 
-    Die werden in von der :class:`~immo_crawl.spider.PricecheckSpider` in einer eigenen
-    Pipeline (siehe :attr:`~immo_crawl.spiders.pricecheck_spider.PricecheckSpider.custom_settings`)
-    in die Datenbank geschrieben.
+    The data is processed in its own pipeline 
+    (cf. :attr:`~immo_crawl.spiders.pricecheck_spider.PricecheckSpider.custom_settings`).
     """
     url = Field()
     date = Field()
@@ -161,10 +149,8 @@ class PriceCheckItem(Item):
 
 class PriceCheckLoader(ItemLoader):
     """
-    Der :class:`PriceCheckLoader` befüllt den Container (:class:`PriceCheckItem`) mit den
-    aus dem HTML-Code extrahierten Daten. Dabei ermöglicht er eine Vorverarbeitung der
-    Daten, damit diese im gewünschten Format vorhanden sind, um sie in der Pipeline (siehe
-    :attr:`~immo_crawl.spiders.pricecheck_spider.PricecheckSpider.custom_settings`) weiter zu verarbeiten.
+    Preprocesses the data scraped by :class:`PricecheckSpider` and writes it to 
+    :class:`PriceCheckItem`.
     """
     default_output_processor = TakeFirst()
     price_chf_in = Compose(first_element, remove_chf)

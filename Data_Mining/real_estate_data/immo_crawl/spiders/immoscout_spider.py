@@ -7,37 +7,27 @@ from immo_crawl.credentials import HOSTNAME, USERNAME, PASSWORD, DATABASE
 
 class ImmoscoutSpider(scrapy.Spider):
     """
-    Die :class:`ImmoscoutSpider` crawlt die Inserate aller Immobilien auf https://www.immoscout24.ch,
-    die zur Miete angeboten werden und speichert die Daten, die gescraped wurden, in ein
-    :class:`~immo_crawl.items.ImmoCrawlItem`.
+    :class:`ImmoscoutSpider` crawls the advertisements of all rentable real estate 
+    on https://www.immoscout24.ch and saves the data in :class:`~immo_crawl.items.ImmoCrawlItem`.
 
     Attributes:
-        name (str): Name der Spider, wie er zum Start eines Durchlaufs verwendet wird.
-        allowed_domains (list): Liste der zugelassenen Domains, auf der die Spider scrapen darf.
+        name (str): name of the spider
+        allowed_domains (list): list of allowed domains
     """
     name = 'immoscout'
     allowed_domains = ['immoscout24.ch']
 
     def start_requests(self):
         """
-        In dieser Methode werden Anfragen für die definierten Start-URLs an den
-        Webserver gesendet.
-
-        Da diese Methode zu Beginn eines Durchlaufs ausgeführt wird um Daten zu sammeln, wird
-        an dieser Stelle eine Liste der URLs erstellt, für die bereits in der Datenbank ein
-        Eintrag vorhanden ist.
+        Sends requests with the start_urls.
 
         Yields:
-            :class:`scrapy:scrapy.http.Request`: HTTP-Anfrage, die mit der :meth:`parse` Methode bearbeitet wird.
+            :class:`scrapy:scrapy.http.Request`: HTTP request that is processed with :meth:`parse`.
 
         Attributes:
-            start_urls (list): Liste mit der Start-URL für jeden Kanton.
-
-                Da der nächste-Seite-Link der Ergebnisseiten nicht ausgelesen werden kann,
-                wird die Seitenzahl in der Start-URL ausgelassen und erst beim Erstellen der Anfrage
-                eingefügt.
+            start_urls (list): List with the start URL for each canton.
         """
-        # Eine Liste der URLs erstellen, die bereits besucht wurden.
+        # Create a list of URLs that have already been visited
         conn = psycopg2.connect(
             host=HOSTNAME, user=USERNAME, password=PASSWORD, dbname=DATABASE)
         with conn.cursor() as cur:
@@ -73,38 +63,31 @@ class ImmoscoutSpider(scrapy.Spider):
             'https://www.immoscout24.ch/de/immobilien/mieten/kanton-zug?map=1&pn={}&se=16',
             'https://www.immoscout24.ch/de/immobilien/mieten/kanton-zuerich?map=1&pn={}&se=16',
         ]
-        # Anfragen für die Start-URLs senden
+        # Send requests for the start URLs
         page_nr = 1
         for start_url in start_urls:
             yield scrapy.Request(start_url.format(page_nr), callback=self.parse, cb_kwargs={'start_url': start_url})
 
     def parse(self, response, start_url=None):
         """
-        In dieser Methode werden die Ergebnisseiten der HTTP-Antworten verarbeitet, die mit der
-        :meth:`start_requests` Methode oder der :meth:`parse` Methode angefragt wurden.
-
-        Gesendete Anfragen für Links auf Inserate werden mit der :meth:`parse_item` Methode verarbeitet.
-
-        Falls die HTTP-Antwort auf eine Anfrage aus den :attr:`start_urls` folgt, müssen die URLs der
-        weiteren Ergebnisseiten noch erstellt werden.
-
-        Um die Serverlast durch Anfragen gering zu halten, werden nur
-        für diejenigen Links auf Inserate neue HTTP-Anfragen gesendet, die noch nicht in der Datenbank
-        vorhanden sind. Bei bereits vorhandenen URLs wird jeweils das aktuelle Datum in der Datenbank ergänzt.
+        HTTP responses are processed that were requested with :meth:`start_requests` or :meth:`parse`.
+        Links to advertisements are processed using :meth:`parse_item`. If the response follows a request
+        from :attr:`start_urls`, the URLs of the other result pages still have to be created. Only requests 
+        for advertisements that have not yet been scraped will be sent. The current date is added to the 
+        database for existing URLs.
 
         Parameters:
-            response (scrapy.http.Response): Die HTTP-Antwort einer gesendeten Anfrage.
-            start_url (str): Die Anfrage-URL, falls sie von den :attr:`start_urls` stammt, standardmässig ``None``.
+            response (scrapy.http.Response): HTTP response to a sent request
+            start_url (str): requested URL, when from :attr:`start_urls` it defaults to ``None``.
 
         Yields:
-            :class:`scrapy:scrapy.http.Request`: HTTP-Anfragen, die entweder mit der :meth:`parse` Methode
-            oder der :meth:`parse_item` Methode verarbeitet werden.
+            :class:`scrapy:scrapy.http.Request`:HTTP request that will be processed with :meth:`parse` or :meth:`parse_item`
         """
-        # Verarbeiten der Ergebnisseiten
+        # Processing the results pages
         for item_link in response.css('article a'):
             url = response.urljoin(item_link.css('::attr(href)').get())
             url = url.split('?')[0]
-            # Falls sich die URL bereits in der Datenbank befindet, wird das Datum hinzugefügt (date_last_seen)
+            # If the URL is already in the database, the date is added to it (date_last_seen)
             if url in self.visited_urls:
                 conn = psycopg2.connect(
                     host=HOSTNAME, user=USERNAME, password=PASSWORD, dbname=DATABASE)
@@ -117,7 +100,7 @@ class ImmoscoutSpider(scrapy.Spider):
             else:
                 yield response.follow(item_link, self.parse_item)
 
-        # Falls die Response von einer Start-URL stammt, müssen die weiteren Links noch erstellt werden.
+        # Create links if response to a start URL
         if start_url:
             last_page = response.xpath(
                 '//span[text()="Vorwärts"]/../../preceding-sibling::div[1]/*[last()]/text()').get()
@@ -127,25 +110,21 @@ class ImmoscoutSpider(scrapy.Spider):
 
     def parse_item(self, response):
         """
-        In dieser Methode werden die HTTP-Antworten der Inserateseiten verarbeitet, die durch
-        Anfragen der :meth:`parse` Methode erhalten wurden.
-
-        Die gesammelten Daten werden durch ein Loader-Objekt in ein Item geschrieben.
+        HTTP responses from :meth:`parse` are processed. The collected data will 
+        be written to an Item by a Loader object. 
 
         Parameters:
-            response (scrapy.http.Response): Die HTTP-Antwort einer gesendeten Anfrage.
+            response (scrapy.http.Response): HTTP response to a sent request
 
         Yields:
-            :class:`~immo_crawl.items.ImmoCrawlItem`: Das Item, das in der Pipeline
-            (siehe :attr:`~immo_crawl.settings.ITEM_PIPELINES`) weiter verarbeitet wird.
+            :class:`~immo_crawl.items.ImmoCrawlItem`: The Item that will be processed by
+            :attr:`~immo_crawl.settings.ITEM_PIPELINES`
 
         Attributes:
-            loader (:class:`~immo_crawl.items.ImmoScoutLoader`): Objekt, das die Daten aus dem HTML-Code
-                ausliest und in das :attr:`immo_item` schreibt.
-            immo_item (:class:`~immo_crawl.items.ImmoCrawlItem`): Container, der die Daten enthält, die
-                in die Datenbank geschrieben werden sollen.
+            loader (:class:`~immo_crawl.items.ImmoScoutLoader`): object to collect data from HTML write to the Item
+            immo_item (:class:`~immo_crawl.items.ImmoCrawlItem`): container for storing the data to be written to the database
         """
-        # Auslesen der Daten aus den einzelnen Trefferseiten
+        # Scraping the data
         loader = ImmoScoutLoader(item=ImmoCrawlItem(), response=response)
         loader.add_xpath('address', '//article[h2="Standort"]//p/text()')
         loader.add_xpath('zip_code', '//article[h2="Standort"]//p/text()')

@@ -6,13 +6,12 @@ from immo_crawl.credentials import HOSTNAME, USERNAME, PASSWORD, DATABASE
 
 class WriteToDB(object):
     """
-    In diesem Abschnitt der Pipeline werden die Daten aus dem :class:`~immo_crawl.items.ImmoCrawlItem`
-    in die Datenbank geschrieben.
+    Write the data from :class:`~immo_crawl.items.ImmoCrawlItem` to the database.
     """
 
     def open_spider(self, spider):
         """
-        Beim Start der Spider wird eine Verbindung zur Datenbank aufgebaut.
+        A connection to the database is established when the spider is started.
         """
         self.conn = psycopg2.connect(
             host=HOSTNAME, user=USERNAME, password=PASSWORD, dbname=DATABASE)
@@ -20,17 +19,17 @@ class WriteToDB(object):
 
     def close_spider(self, spider):
         """
-        Wenn die Spider mit ihrem Durchgang fertig ist, wird die Datenbankverbindung, die beim
-        Start aufgebaut wurde (:meth:`open_spider`), wieder geschlossen.
+        When the spider has finished its run, the database connection that was established 
+        at the start (:meth:`open_spider`) is closed again.
         """
         self.cur.close()
         self.conn.close()
 
     def process_item(self, item, spider):
         """
-        Von jedem :class:`~immo_crawl.items.ImmoCrawlItem` werden alle Daten in die
-        Haupttabelle der Datenbank geschrieben. Die URL, das Datum und der Preis werden zudem
-        in die Preis-Tabelle der Datenbank geschrieben.
+        All data from each :class:`~immo_crawl.items.ImmoCrawlItem` is written to 
+        the main table of the database. The URL, the date and the price are also 
+        written are also written to the price table.
         """
         self.cur.execute('INSERT INTO eva_data (address, zip, city, canton, price_chf, '
                          'rooms, area_m2, floor, utilities_chf, date_available, date_scraped, date_last_seen, url) '
@@ -47,8 +46,8 @@ class WriteToDB(object):
 
 class SetDefaultValues(object):
     """
-    In diesem Abschnitt der Pipeline werden für die optionalen Datenfelder Standardwerte
-    definiert, falls die Werte nicht aus dem HTML-Code ausgelesen werden konnte.
+    Default values are defined for the optional data fields if the values could 
+    not be read from the HTML code.
     """
 
     def process_item(self, item, spider):
@@ -61,8 +60,8 @@ class SetDefaultValues(object):
 
 class CleanData(object):
     """
-    In diesem Teil der Pipeline werden die Daten bereinigt, indem die im :class:`~immo_crawl.items.ImmoCrawlItem`
-    enthaltenen Strings in numerische Werte und Datumstypen umgewandelt werden.
+    The data is cleansed by converting the strings contained in  
+    :class:`~immo_crawl.items.ImmoCrawlItem` into numerical values and date types.
     """
 
     def process_item(self, item, spider):
@@ -101,8 +100,8 @@ class CleanData(object):
 
 class DataValidation(object):
     """
-    In diesem Teil der Pipeline wird überprüft, ob die Datenfelder des :class:`~immo_crawl.items.ImmoCrawlItem`
-    gültige Werte enthalten.
+    Checks whether the data fields of the :class:`~immo_crawl.items.ImmoCrawlItem`
+    contain valid values.
     """
 
     def process_item(self, item, spider):
@@ -123,8 +122,7 @@ class DataValidation(object):
 
 class PriceCheckValidation(object):
     """
-    In diesem Teil der Pricecheck-Pipeline wird überprüft, ob es sich bei den extrahierten
-    Daten um numerische Werte handelt.
+    Checks whether the extracted data are numerical values.
     """
 
     def process_item(self, item, spider):
@@ -138,14 +136,14 @@ class PriceCheckValidation(object):
 
 class WritePrice(object):
     """
-    In diesem Teil der Pricecheck-Pipeline werden die Daten der :class:`~immo_crawl.spiders.
-    pricecheck_spider.PricecheckSpider` in die Preis-Tabelle der Datenbank geschrieben.
+    The data of the :class:`~immo_crawl.spiders.pricecheck_spider.PricecheckSpider` 
+    is written to the price table of the database.
     """
 
     def open_spider(self, spider):
         """
-        Beim Start der :class:`~immo_crawl.spiders.pricecheck_spider.PricecheckSpider`
-        wird eine Verbindung zur Datenbank aufgebaut.
+        A connection to the database is established when the 
+        :class:`~immo_crawl.spiders.pricecheck_spider.PricecheckSpider` is started.
         """
         self.conn = psycopg2.connect(
             host=HOSTNAME, user=USERNAME, password=PASSWORD, dbname=DATABASE)
@@ -153,17 +151,16 @@ class WritePrice(object):
 
     def close_spider(self, spider):
         """
-        Wenn die :class:`~immo_crawl.spiders.pricecheck_spider.PricecheckSpider` mit
-        ihrem Durchgang fertig ist, wird die Datenbankverbindung, die beim Start aufgebaut
-        wurde (:meth:`open_spider`), wieder geschlossen.
+        When the spider has finished its run, the database connection that was established 
+        at the start (:meth:`open_spider`) is closed again.
         """
         self.cur.close()
         self.conn.close()
 
     def process_item(self, item, spider):
         """
-        Die Daten des :class:`~immo_crawl.items.PriceCheckItem` werden in die Preis-Tabelle
-        der Datenbank geschrieben.
+        The data of the :class:`~immo_crawl.items.PriceCheckItem` is written to 
+        the price table of the database.
         """
         self.cur.execute('INSERT INTO eva_prices (url, date, price_chf) VALUES (%s, %s, %s);',
                          (item['url'], item['date'], item['price_chf']))
@@ -173,16 +170,16 @@ class WritePrice(object):
 
 class ComparePrice(object):
     """
-    In diesem Teil der Pricecheck-Pipeline werden die Preise, die im :class:`~immo_crawl.items.PriceCheckItem`
-    gespeichert sind, mit dem neuesten Preis für die entsprechende URL in der Preis-Tabelle der Datenbank
-    verglichen, um zu entscheiden, ob ein neuer Eintrag in die Preis-Tabelle erstellt oder das
-    :class:`~immo_crawl.items.PriceCheckItem` verworfen wird.
+    The prices stored in the :class:`~immo_crawl.items.PriceCheckItem` are compared 
+    with the latest price for the corresponding URL in the price table of the database 
+    to decide whether a new entry should be created in the price table or the 
+    :class:`~immo_crawl.items.PriceCheckItem` should be dropped.
     """
 
     def open_spider(self, spider):
         """
-        Beim Start der :class:`~immo_crawl.spiders.pricecheck_spider.PricecheckSpider`
-        wird eine Verbindung zur Datenbank aufgebaut.
+        A connection to the database is established when the 
+        :class:`~immo_crawl.spiders.pricecheck_spider.PricecheckSpider` is started.
         """
         self.conn = psycopg2.connect(
             host=HOSTNAME, user=USERNAME, password=PASSWORD, dbname=DATABASE)
@@ -190,17 +187,16 @@ class ComparePrice(object):
 
     def close_spider(self, spider):
         """
-        Wenn die :class:`~immo_crawl.spiders.pricecheck_spider.PricecheckSpider` mit
-        ihrem Durchgang fertig ist, wird die Datenbankverbindung, die beim Start aufgebaut
-        wurde (:meth:`open_spider`), wieder geschlossen.
+        When the spider has finished its run, the database connection that was established 
+        at the start (:meth:`open_spider`) is closed again.
         """
         self.cur.close()
         self.conn.close()
 
     def process_item(self, item, spider):
         """
-        Der aktuellste Preis in der Preis-Tabelle der Datenbank wird mit dem Preis im
-        :class:`~immo_crawl.items.PriceCheckItem` verglichen.
+        The most recent price in the price table of the database is compared with 
+        the price in the :class:`~immo_crawl.items.PriceCheckItem`.
         """
         self.cur.execute('SELECT price_chf FROM eva_prices WHERE url = %s ORDER BY date desc',
                          (item['url'], ))

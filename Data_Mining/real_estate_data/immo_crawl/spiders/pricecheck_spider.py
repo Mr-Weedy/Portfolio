@@ -7,21 +7,12 @@ from immo_crawl.credentials import HOSTNAME, USERNAME, PASSWORD, DATABASE
 
 class PricecheckSpider(scrapy.Spider):
     """
-    Die :class:`PricecheckSpider` besucht alle noch aktuellen Inserate, die in der Datenbank
-    gespeichert sind und überprüft, ob es Änderungen beim Preis gegeben hat. Allfällige Änderungen
-    werden in der Preis-Tabelle der Datenbank festgehalten.
+    :class:`PricecheckSpider` looks up all current ads stored in the database and 
+    checks whether there have been any changes to the price, which will be updated in the database.
 
     Attributes:
-        name (str): Name der Spider, wie er zum Start eines Durchlaufs verwendet wird.
-        custom_settings (dict):
-
-            Da sich die Verarbeitungslogik der Daten in der :class:`PriceCheckSpider`
-            von den anderen Spiders unterscheidet (siehe :attr:`~immo_crawl.settings.ITEM_PIPELINES`),
-            müssen hier die benötigten Abschnitte der Pipeline definiert werden:
-
-            #. :class:`~immo_crawl.pipelines.PriceCheckValidation`
-            #. :class:`~immo_crawl.pipelines.ComparePrice`
-            #. :class:`~immo_crawl.pipelines.WritePrice`
+        name (str): name of the spider
+        custom_settings (dict): special settings for this spider
     """
     name = 'pricecheck'
     custom_settings = {
@@ -33,12 +24,11 @@ class PricecheckSpider(scrapy.Spider):
 
     def start_requests(self):
         """
-        In dieser Methode werden die noch aktiven URLs aus der Datenbank ausgelesen, für die
-        HTTP-Anfragen an den Server geschickt werden. Die resultierenden Antworten werden mit der
-        :meth:`parse` Methode verarbeitet.
+        Read the active URLs in the database for which requests are sent to the server. 
+        The resulting responses are processed using :meth:`parse`.
 
         Yields:
-            :class:`scrapy:scrapy.http.Request`: HTTP-Anfrage, die mit der :meth:`parse` Methode bearbeitet wird.
+            :class:`scrapy:scrapy.http.Request`: HTTP request that is processed with :meth:`parse`
         """
         check_date = date.today() - timedelta(days=7)
         conn = psycopg2.connect(
@@ -54,21 +44,18 @@ class PricecheckSpider(scrapy.Spider):
 
     def parse(self, response, **kwargs):
         """
-        In dieser Methode werden die Preise aus den Inserateseiten ausgelesen und mithilfe
-        eines :attr:`loader` in ein :attr:`price_item` geschrieben.
+        The prices are scraped from the ads and written to a :attr:`price_item` by a :attr:`loader`.
 
         Parameters:
-            response (scrapy.http.Response): Die HTTP-Antwort einer gesendeten Anfrage.
+            response (scrapy.http.Response): HTTP response to a sent request
 
         Yields:
-            :class:`~immo_crawl.items.PriceCheckItem`: Das Item, das in der Pipeline
-            (siehe :attr:`custom_settings`) weiter verarbeitet wird.
+            :class:`~immo_crawl.items.PriceCheckItem`: The item that gets processed in the pipeline
+            (cf. :attr:`custom_settings`)
 
         Attributes:
-            loader (:class:`~immo_crawl.items.PriceCheckLoader`): Objekt, das die Daten aus dem HTML-Code
-                ausliest und in das :attr:`price_item` schreibt.
-            price_item (:class:`~immo_crawl.items.PriceCheckItem`): Container, der die Daten enthält, die
-                in die Datenbank geschrieben werden sollen.
+            loader (:class:`~immo_crawl.items.PriceCheckLoader`):  object to collect data from HTML write to :attr:`price_item`
+            price_item (:class:`~immo_crawl.items.PriceCheckItem`): container for storing the data to be written to the database
         """
         loader = PriceCheckLoader(item=PriceCheckItem(), response=response)
         loader.add_value('url', response.request.url.split('?')[0])
